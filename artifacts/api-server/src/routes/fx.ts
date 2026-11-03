@@ -5,12 +5,14 @@ import {
   ConfigureServerBody, ConfigureServerParams, ConfigureServerResponse,
   ExecuteCommandBody, ExecuteCommandParams, ExecuteCommandResponse,
   GetServerStatusParams, GetServerStatusResponse,
+  GetServerPlayerStateParams, GetServerPlayerStateResponse,
   CaptureServerSnapshotResponse,
   ListServersResponse, GetActivityResponse, GetCommandCatalogResponse,
 } from "@workspace/api-zod";
 import { catalog, keyConfigured, matchOperation, normalizeBaseUrl, upstream } from "../lib/fx-upstream";
 import { clearStatus, serverStatus } from "../lib/fx-status";
 import { clearSnapshots, serverSnapshot } from "../lib/fx-snapshot";
+import { serverPlayer } from "../lib/fx-player";
 
 const router: IRouter = Router();
 const busy = new Set<string>();
@@ -106,6 +108,15 @@ router.get("/fx/catalog", (_req, res) => {
 router.get("/fx/activity", async (_req, res): Promise<void> => {
   const entries = await db.select().from(fxActivity).orderBy(desc(fxActivity.id)).limit(150);
   res.json(GetActivityResponse.parse(entries.map((item) => ({ ...item, timestamp: item.timestamp.toISOString() }))));
+});
+
+router.get("/fx/servers/:id/player", async (req, res): Promise<void> => {
+  const params = GetServerPlayerStateParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid server." }); return; }
+  const server = await getServer(params.data.id);
+  if (!server) { res.status(404).json({ error: "Unknown server slot" }); return; }
+  res.setHeader("Cache-Control", "no-store");
+  res.json(GetServerPlayerStateResponse.parse(await serverPlayer(server)));
 });
 
 router.post("/fx/servers/:id/snapshot", async (req, res): Promise<void> => {

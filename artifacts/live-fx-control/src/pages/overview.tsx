@@ -9,6 +9,7 @@ import { fmt, num, pick, targetIds, useConfirm, useFx, useRunner, type RunResult
 import { ConnPill, GateNote, ResultStack, SlotBadge, Stat } from '@/components/fx-ui';
 import { SnapshotPreview } from '@/components/snapshot-preview';
 import { playerBlockReason } from '@/lib/player-state';
+import { useLivePlayer } from '@/lib/live-player';
 
 function ServerCard({ id }: { id: SlotId }) {
   const { server, status, serversLoading } = useFx();
@@ -76,10 +77,10 @@ function ServerCard({ id }: { id: SlotId }) {
 }
 
 function Timeline({ id }: { id: SlotId }) {
-  const { status, label } = useFx();
-  const st = status(id).data;
-  const pm = st?.playmode;
-  const online = st?.connection === 'online';
+  const { label } = useFx();
+  const feed = useLivePlayer(id);
+  const pm = feed.playmode;
+  const online = feed.fresh;
   const frame = num(pick(pm, 'frame'));
   const length = num(pick(pm, 'length'));
   const mi = num(pick(pm, 'mark_in'));
@@ -91,18 +92,19 @@ function Timeline({ id }: { id: SlotId }) {
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
         <SlotBadge id={id} />
         <span className="font-semibold">{label(id)}</span>
+        <span data-testid={`live-player-state-${id}`} className={cn('mono text-[10px]', online ? 'text-emerald-700' : 'text-muted-foreground')}>{feed.state}</span>
         {online ? (
           <span className={cn('mono rounded-sm px-1.5 py-0.5 text-[10px] font-bold', mode === 'RECORD' ? 'bg-destructive text-destructive-foreground' : 'bg-secondary')}>{mode}</span>
         ) : (
-          <span className="mono text-[10px] uppercase text-muted-foreground">no playmode — not connected</span>
+          <span className="mono text-[10px] uppercase text-muted-foreground">no current playmode</span>
         )}
-        <span className="mono ml-auto text-sm font-bold tabular-nums">{online ? fmt(pick(pm, 'timecodec') ?? pick(pm, 'timecode')) : '--:--:--:--'}</span>
+        <span data-testid={`text-timecode-${id}`} className="mono ml-auto text-sm font-bold tabular-nums">{online ? fmt(pick(pm, 'timecodec') ?? pick(pm, 'timecode')) : '--:--:--:--'}</span>
       </div>
       <div className="relative h-7 overflow-hidden rounded-sm border bg-[repeating-linear-gradient(90deg,hsl(var(--muted))_0_1px,transparent_1px_24px)]">
         {online && pct(mi) != null && pct(mo) != null && (
           <div className="absolute inset-y-0 bg-[hsl(var(--armed)/.22)]" style={{ left: `${pct(mi)}%`, width: `${(pct(mo) ?? 0) - (pct(mi) ?? 0)}%` }} />
         )}
-        {online && pct(frame) != null && <div className="absolute inset-y-0 w-0.5 bg-destructive transition-[left] duration-500" style={{ left: `${pct(frame)}%` }} />}
+        {online && pct(frame) != null && <div data-testid={`playhead-${id}`} className="absolute inset-y-0 w-0.5 bg-destructive" style={{ left: `${pct(frame)}%` }} />}
         {!online && <div className="mono absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-widest text-muted-foreground">timeline unavailable</div>}
       </div>
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -113,6 +115,7 @@ function Timeline({ id }: { id: SlotId }) {
         <Stat k="In / Out" v={online ? `${fmt(mi)} / ${fmt(mo)}` : '—'} />
         <Stat k="Audio" v={online ? fmt(pick(pm, 'audio')) : '—'} />
       </div>
+      {feed.error && <p role="status" className="mt-2 text-xs text-muted-foreground">{feed.error}</p>}
     </div>
   );
 }

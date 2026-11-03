@@ -71,6 +71,23 @@ export const GetServerStatusResponse = zod.object({
 
 
 /**
+ * Lightweight read-only player telemetry for 250 ms polling, independent of the slower full-system status cache.
+ */
+export const GetServerPlayerStateParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetServerPlayerStateResponse = zod.object({
+  "id": zod.string(),
+  "ok": zod.boolean(),
+  "checkedAt": zod.string(),
+  "latencyMs": zod.number().nullable(),
+  "error": zod.string().nullable(),
+  "playmode": zod.record(zod.string(), zod.unknown())
+})
+
+
+/**
  * Request a proxy JPEG of the current player shot. Never writes a file or changes playback. Images are transient and not stored.
  */
 export const CaptureServerSnapshotParams = zod.object({

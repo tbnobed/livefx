@@ -112,6 +112,18 @@ with separate project and grading editors. Switching scope clears page-local
 unsaved drafts/results and stops previews from the previous scope, preventing
 an old shot UUID or command draft from carrying into another server.
 
+### Live player telemetry
+
+Overview timeline panels read actual frame, timecode, play mode, loop, and
+in/out values through a dedicated read-only player feed every 250 ms (up to
+four updates per second, depending on server/network latency). This bypasses
+the slower system-status cache. A/B tabs request only the selected server;
+Both requests each server independently. Reads pause in hidden tabs, and
+unavailable or stalled data is labeled rather than extrapolating frames.
+Multiple browsers share in-flight reads and a short per-server cache to limit
+hardware load. This is near-real-time REST polling, not frame-lock or genlock.
+Snapshot images use their separate 5-second default refresh.
+
 ### Snapshot previews
 
 On Overview, each connected server has **Capture now** and **Auto

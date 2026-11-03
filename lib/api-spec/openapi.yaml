@@ -53,6 +53,18 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ServerStatus" }
+  /fx/servers/{id}/player:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getServerPlayerState
+      description: Lightweight read-only player telemetry for 250 ms polling, independent of the slower full-system status cache.
+      responses:
+        "200":
+          description: Actual player state, or an explicit unavailable result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerState" }
   /fx/servers/{id}/snapshot:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -146,6 +158,16 @@ components:
         warnings:
           type: array
           items: { type: string }
+    PlayerState:
+      type: object
+      required: [id, ok, checkedAt, latencyMs, error, playmode]
+      properties:
+        id: { type: string }
+        ok: { type: boolean }
+        checkedAt: { type: string }
+        latencyMs: { type: ["number", "null"] }
+        error: { type: ["string", "null"] }
+        playmode: { $ref: "#/components/schemas/JsonData" }
     SnapshotResult:
       type: object
       required: [ok, image, capturedAt, shotUuid, frame, error]

@@ -31,6 +31,7 @@ import type {
   CommandResult,
   FxServer,
   HealthStatus,
+  PlayerState,
   ServerSettings,
   ServerStatus,
   SnapshotResult
@@ -419,6 +420,104 @@ export function useGetServerStatus<TData = Awaited<ReturnType<typeof getServerSt
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetServerStatusQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetServerPlayerStateUrl = (id: string,) => {
+
+
+
+
+  return `/api/fx/servers/${id}/player`
+}
+
+/**
+ * Lightweight read-only player telemetry for 250 ms polling, independent of the slower full-system status cache.
+ */
+export const getServerPlayerState = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<PlayerState> => {
+
+  return customFetch<PlayerState>(getGetServerPlayerStateUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetServerPlayerStateQueryKey = (id: string,) => {
+    return [
+    `/api/fx/servers/${id}/player`
+    ] as const;
+    }
+
+
+export const getGetServerPlayerStateQueryOptions = <TData = Awaited<ReturnType<typeof getServerPlayerState>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServerPlayerState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetServerPlayerStateQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServerPlayerState>>> = ({ signal }) => getServerPlayerState(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getServerPlayerState>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetServerPlayerStateQueryResult = NonNullable<Awaited<ReturnType<typeof getServerPlayerState>>>
+export type GetServerPlayerStateQueryError = ErrorType<unknown>
+
+
+export function useGetServerPlayerState<TData = Awaited<ReturnType<typeof getServerPlayerState>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServerPlayerState>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getServerPlayerState>>,
+          TError,
+          Awaited<ReturnType<typeof getServerPlayerState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetServerPlayerState<TData = Awaited<ReturnType<typeof getServerPlayerState>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServerPlayerState>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getServerPlayerState>>,
+          TError,
+          Awaited<ReturnType<typeof getServerPlayerState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetServerPlayerState<TData = Awaited<ReturnType<typeof getServerPlayerState>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServerPlayerState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetServerPlayerState<TData = Awaited<ReturnType<typeof getServerPlayerState>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServerPlayerState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetServerPlayerStateQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

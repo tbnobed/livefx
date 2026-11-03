@@ -56,6 +56,17 @@ export interface ServerStatus {
   warnings: string[];
 }
 
+export interface PlayerState {
+  id: string;
+  ok: boolean;
+  checkedAt: string;
+  /** @nullable */
+  latencyMs: number | null;
+  /** @nullable */
+  error: string | null;
+  playmode: JsonData;
+}
+
 export interface SnapshotResult {
   ok: boolean;
   /** @nullable */

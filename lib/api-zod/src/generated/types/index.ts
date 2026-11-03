@@ -14,6 +14,7 @@ export * from './commandResult';
 export * from './fxServer';
 export * from './healthStatus';
 export * from './jsonData';
+export * from './playerState';
 export * from './serverSettings';
 export * from './serverStatus';
 export * from './serverStatusConnection';
