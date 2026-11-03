@@ -1,0 +1,82 @@
+name: live-fx-control
+
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: live_fx
+      POSTGRES_USER: live_fx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run bash scripts/docker-start.sh first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U live_fx -d live_fx"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    image: postgres:17-bookworm
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: live_fx
+      PGUSER: live_fx
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Run bash scripts/docker-start.sh first}
+    volumes:
+      - ./deploy/docker/001-initial.sql:/migrations/001-initial.sql:ro
+    command: ["psql", "--no-password", "--set", "ON_ERROR_STOP=1", "--file", "/migrations/001-initial.sql"]
+
+  api:
+    platform: linux/amd64
+    build:
+      context: .
+      target: api
+    init: true
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      DATABASE_URL: postgresql://live_fx:${POSTGRES_PASSWORD:?Run bash scripts/docker-start.sh first}@db:5432/live_fx
+      LIVE_FX_SERVER_A_KEY: ${LIVE_FX_SERVER_A_KEY:-}
+      LIVE_FX_SERVER_B_KEY: ${LIVE_FX_SERVER_B_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/fx/servers').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    platform: linux/amd64
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    # Keep this operator tool local until authentication is implemented.
+    ports:
+      - "127.0.0.1:${CONTROL_CENTER_PORT:-8088}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data:

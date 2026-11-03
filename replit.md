@@ -48,6 +48,8 @@ The requested product controls two existing Assimilate Live FX servers using the
 
 ## Gotchas
 
+- The user requires self-hosting under Windows WSL2 via Docker. Keep the local deployment independent of Replit services. See `deploy/docker/README.md`; start with `bash scripts/docker-start.sh`. Its default localhost-only binding is intentional until operator authentication is implemented.
+
 - Assimilate REST is available from Product Suite v9.9 build 1205. Enable its HTTP server in System Settings.
 - If the hardware uses optional access keys, configure `LIVE_FX_SERVER_A_KEY` and `LIVE_FX_SERVER_B_KEY` using Replit Secrets. The backend sends the raw value in `Authorization`, not a Bearer token. Never put keys in URLs, forms, logs, or the browser.
 - Status checks use read-only endpoints. Non-transport writes need explicit confirmation; remote control must also be armed per server.

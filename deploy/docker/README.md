@@ -1,0 +1,168 @@
+# Run Live FX Control on Windows with WSL2 and Docker
+
+This runs the control center locally; the Assimilate Live FX software stays on
+your existing servers. No Replit runtime or cloud database is needed.
+
+## Requirements
+
+- Windows with WSL2 and an Ubuntu distribution.
+- Docker Desktop using **Linux containers**, the **WSL2 engine**, and WSL
+  integration enabled for your distribution.
+- An x86-64 Windows machine. The current workspace lockfile excludes other
+  platforms' native build packages; these images intentionally target amd64.
+- Docker Compose v2 with `--wait` support, Git, and the `openssl` command in WSL.
+- Network access from Docker to both Assimilate HTTP API ports.
+
+## Start
+
+Download or clone this project's source into your WSL Linux filesystem
+(for example, `~/live-fx-control`, rather than `/mnt/c/...`), open a WSL terminal
+in the project directory, and run:
+
+```bash
+bash scripts/docker-start.sh
+```
+
+The first run downloads images, builds the production frontend/API, generates a
+random database password in a private `.env` file, initializes the schema, and
+starts everything. Later runs retain the password and all database data.
+
+Open **http://localhost:8088** in your Windows browser.
+
+The services are:
+
+| Service | Purpose | Published port |
+| --- | --- | --- |
+| `web` | Nginx production static server and same-origin API proxy | localhost:8088 |
+| `api` | Live FX HTTP bridge, safety gates, settings, audit history | None |
+| `db` | PostgreSQL 17 with a persistent named volume | None |
+| `migrate` | One-shot additive database bootstrap | None |
+
+The API runs as a non-root user. Keys are only supplied to the API at runtime,
+not built into the browser bundle or images. `.env` is excluded from Git and the
+Docker build context. Do not commit it, share it, or run `docker compose config`
+into a public log: resolved configuration can contain credentials.
+
+## Connect both Live FX servers
+
+In Assimilate, enable the HTTP server in System Settings. REST requires a
+supported Product Suite version (v9.9 build 1205 or later). Then open the control
+center's **Settings** page and enter each server's URL:
+
+| Where Live FX runs | Example URL entered in Settings |
+| --- | --- |
+| Separate studio PC | `http://192.168.1.101:8080/APIV2` |
+| Second studio PC | `http://192.168.1.102:8080/APIV2` |
+| This Windows host, Docker Desktop | `http://host.docker.internal:8080/APIV2` |
+
+Examples are not preconfigured. Use the actual configured API ports.
+`localhost` inside the API container is the container itself, **not Windows**;
+loopback URLs are intentionally blocked. Two Live FX instances on the same host
+need distinct API ports.
+
+Use the connection test first. Both slots start disarmed; arm remote control
+only when it is safe to control that machine. There is no frame-synchronous
+two-server guarantee.
+
+### Optional API access keys
+
+If Assimilate requires access keys, run this **in your local WSL terminal**:
+
+```bash
+bash scripts/docker-keys.sh
+```
+
+It prompts with hidden input for both keys, saves them locally, and restarts only
+the API service. Empty input removes that server's key. Do not paste keys into
+chat, URLs, or the browser. The bridge sends the raw key as `Authorization`,
+as required by Assimilate.
+
+## Networking and firewall
+
+- On each server, allow its configured Assimilate HTTP port through Windows
+  Firewall for the trusted studio network. The HTTP listener must accept
+  connections from outside its own loopback interface.
+- Docker Desktop normally provides `host.docker.internal`. The Compose file also
+  adds a host-gateway mapping for Linux Docker environments. With a Docker Engine
+  installed directly inside WSL rather than Docker Desktop, this gateway may be
+  WSL instead of Windows: use the reachable Windows/studio LAN address instead.
+- VPNs, endpoint security, VLANs, and WSL NAT can block these connections. A
+  working browser connection on Windows does not prove the container can connect.
+- Inspect the network path **from the API container** without sending control
+  commands:
+
+```bash
+docker compose exec api node -e \
+  "fetch('http://host.docker.internal:8080/APIV2/system',{signal:AbortSignal.timeout(6000)}).then(async r=>console.log(r.status,await r.text())).catch(e=>{console.error(e.message);process.exit(1)})"
+```
+
+Replace only the example address with the server's actual address. A 401/403
+means the API is reachable but needs an access key. Do not add keys to this
+command; use the hidden-input script and the app's connection test instead.
+Never forward these unauthenticated control ports to the public internet.
+
+## Normal operation
+
+From the project directory:
+
+```bash
+# Status and recent logs (avoid sharing sensitive server responses)
+docker compose ps
+docker compose logs --tail=100 api web
+
+# Stop; settings/history remain in the named volume
+docker compose down
+
+# Start again, or rebuild after downloading updated source
+bash scripts/docker-start.sh
+```
+
+Do **not** use `docker compose down --volumes` unless you intend to delete the
+database, including saved connections and activity history. Keep `.env` with the
+deployment: replacing its password does not change an existing database's password.
+
+### Backup and restore
+
+Store backups privately; they contain server addresses and activity history.
+Create a backup before updating:
+
+```bash
+mkdir -p backups
+docker compose exec -T db pg_dump -U live_fx -d live_fx -Fc \
+  > "backups/live-fx-$(date +%Y%m%d-%H%M%S).dump"
+```
+
+To verify restoration without touching the active database, create a **separate,
+empty database** inside the database service and restore the complete backup:
+
+```bash
+docker compose exec -T db createdb -U live_fx live_fx_restore
+docker compose exec -T db pg_restore -U live_fx -d live_fx \
+  --list < backups/YOUR_BACKUP.dump
+docker compose exec -T db pg_restore -U live_fx -d live_fx_restore \
+  --no-owner --no-privileges --exit-on-error < backups/YOUR_BACKUP.dump
+```
+
+The active application still uses `live_fx`; this procedure only tests a restore
+into `live_fx_restore`. It deliberately fails if that database already exists.
+An actual recovery/switchover needs a planned maintenance window and the API
+stopped to prevent concurrent writes. Never restore into a populated database or
+delete the existing volume as a shortcut. Test backups before relying on them.
+
+The current SQL bootstrap only creates absent tables. Future schema changes need
+reviewed migrations; rebuilding does not silently alter/drop existing columns.
+
+## Security scope
+
+This is currently a **trusted local operator tool, without user authentication**.
+The published port binds only to `127.0.0.1` on the Docker host. Leave that default
+in place; local processes and users can still access it. Add authentication,
+authorization, and TLS before providing access to other computers or untrusted
+users. Do not expose the database, API, or Live FX servers publicly.
+
+## Verification scope
+
+The production builds and deployment configuration can be checked in the
+development workspace. Docker Desktop/WSL networking and actual Live FX commands
+must be verified on the target Windows machine; this workspace cannot run Docker
+containers.
