@@ -9,8 +9,8 @@ import { errMsg, useFx, type SlotId } from '@/lib/fx';
 export function SnapshotPreview({ id }: { id: SlotId }) {
   const { status, server } = useFx();
   const online = status(id).data?.connection === 'online';
-  const [auto, setAuto] = useState(false);
-  const [interval, setIntervalMs] = useState(10000);
+  const [auto, setAuto] = useState(true);
+  const [interval, setIntervalMs] = useState(5000);
   const [visible, setVisible] = useState(!document.hidden);
   const [last, setLast] = useState<SnapshotResult | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -51,7 +51,7 @@ export function SnapshotPreview({ id }: { id: SlotId }) {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-5 text-center text-stone-300">
             <Camera className="h-6 w-6" />
             <span className="mono text-xs font-bold tracking-widest">SNAPSHOT PREVIEW</span>
-            <span className="text-xs">{online ? 'Capture a still or enable periodic refresh below.' : 'Connect this server to capture a still.'}</span>
+            <span className="text-xs">{online ? (auto ? 'Waiting for snapshot…' : 'Capture a still or enable periodic refresh below.') : 'Connect this server to capture a still.'}</span>
           </div>
         )}
         <div className="absolute left-2 top-2 flex items-center gap-2 rounded bg-black/70 px-2 py-1">

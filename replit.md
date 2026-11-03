@@ -46,7 +46,7 @@ Dual-server monitoring, playback/record controls, project and timeline explorati
 
 The requested product controls two existing Assimilate Live FX servers using the official API, not a simulated dashboard.
 
-The user chose periodically refreshed snapshots, not a separate live video stream. Keep preview capture explicitly opt-in and distinguish shot stills from live/program video. Do not change playback or write snapshot files for monitoring.
+The user chose periodically refreshed snapshots, not a separate live video stream. Snapshot auto-refresh must default to enabled every 5 seconds on both servers. Distinguish shot stills from live/program video. Do not change playback or write snapshot files for monitoring.
 
 The Server A / Server B / Both tabs are app-wide scopes, not just command targets. Every page must show only the selected server's information and controls; combined previews and two-server views belong only under Both. Do not introduce independent page-level server selectors that contradict the global tab.
 

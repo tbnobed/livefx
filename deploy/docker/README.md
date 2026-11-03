@@ -114,8 +114,9 @@ an old shot UUID or command draft from carrying into another server.
 
 ### Snapshot previews
 
-On Overview, each connected server has **Capture now** and opt-in **Auto
-refresh** with 5-, 10-, or 30-second intervals (default 10). These are current
+On Overview, each connected server has **Capture now** and **Auto
+refresh** with 5-, 10-, or 30-second intervals. Auto refresh defaults to enabled
+every 5 seconds on both servers. These are current
 shot proxy stills, not a live stream or guaranteed program-output capture.
 An open player timeline with a valid current shot and shot-local frame is
 required. Capture does not change playback and does not require armed controls.
@@ -124,14 +125,15 @@ Images remain transient: they are not saved in the database, activity history,
 or on the Live FX server by this request. Requests from multiple browsers are
 coalesced/cached for five seconds per server to limit processing load.
 Automatic refresh pauses when the tab is hidden, stops after an error, and is
-off after a page reload. The timestamp always refers to the captured still;
+enabled again every 5 seconds after a page reload. The timestamp always refers to the captured still;
 an older retained image is labeled stale when the next capture fails.
 
 The documented `/application/tools/image` endpoint must support a direct
 JPEG/PNG response. Older REST versions, including 1.0.5, are not verified here.
 An unsupported endpoint or non-image response displays an error rather than
-pretending video is available. Try one manual capture first and check server
-load before enabling frequent refresh.
+pretending video is available. If capture fails, check that the player has a
+valid current shot and retry manually. Monitor server load and increase the
+interval or disable auto refresh if needed.
 
 From the project directory:
 
