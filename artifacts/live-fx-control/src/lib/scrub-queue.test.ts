@@ -80,3 +80,26 @@ test('cancelling a throttled seek clears its timer', async () => {
   await sleep(40);
   assert.deepEqual(calls, [1]);
 });
+test('mouse release keeps the final frame queued without sending it twice', async () => {
+  const calls: number[] = [];
+  const queue = createScrubQueue(async (frame) => { calls.push(frame); return true; }, () => {}, 30);
+  queue.enqueue(10);
+  await sleep(1);
+  queue.enqueue(800);
+  queue.enqueue(800); // Pointer release commits the last input, not old telemetry.
+  await sleep(45);
+  assert.deepEqual(calls, [10, 800]);
+  queue.cancel();
+});
+test('a throttled final seek remains busy until it has finished', async () => {
+  const states: boolean[] = [];
+  const queue = createScrubQueue(async () => true, (busy) => states.push(busy), 30);
+  queue.enqueue(10);
+  await sleep(1);
+  assert.equal(states.at(-1), false);
+  queue.enqueue(800);
+  assert.equal(states.at(-1), true);
+  await sleep(45);
+  assert.equal(states.at(-1), false);
+  queue.cancel();
+});

@@ -14,6 +14,7 @@ export function createScrubQueue(
   let inFlight = false;
   let stopped = false;
   let lastStarted = -Infinity;
+  let lastQueued: number | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const pump = () => {
     if (stopped || inFlight || next === null) return;
@@ -39,10 +40,13 @@ export function createScrubQueue(
   return {
     enqueue(frame: number) {
       if (stopped || !Number.isFinite(frame)) return;
+      if (frame === lastQueued) return;
+      lastQueued = frame;
+      onBusy(true);
       next = frame;
       pump();
     },
-    resume() { stopped = false; },
+    resume() { stopped = false; lastQueued = null; },
     cancel() {
       stopped = true;
       next = null;

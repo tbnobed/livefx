@@ -23,6 +23,12 @@ export function TimelineScrubber({ id, fresh, frame, length, markIn, markOut, re
   const [draft, setDraft] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<RunResult[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const desired = useRef<number | null>(null);
+  const pointerActive = useRef(false);
+  const version = useRef(0);
+  const acknowledged = useRef(0);
   const mounted = useRef(true);
   const gestureContext = useRef('');
   const key = `${context}:${length}`;
@@ -35,10 +41,14 @@ export function TimelineScrubber({ id, fresh, frame, length, markIn, markOut, re
     if (!mounted.current || !state.enabled || state.key !== gestureContext.current || state.length === null) return false;
     const destination = clampSeekFrame(wanted, state.length);
     if (destination === null) return false;
+    const sendingVersion = version.current;
     const response = await run([id], 'PUT', '/application/player/playmode', { mode: 'PAUSE', frame: destination });
     if (mounted.current) {
       setResults(response);
-      if (response[0]?.result?.ok) void qc.invalidateQueries({ queryKey: ['live-player', id] });
+      if (response[0]?.result?.ok) {
+        acknowledged.current = sendingVersion;
+        void qc.invalidateQueries({ queryKey: ['live-player', id] });
+      }
     }
     return Boolean(response[0]?.result?.ok);
   }, (value) => { if (mounted.current) setBusy(value); }), [id, run, qc]);
@@ -49,28 +59,50 @@ export function TimelineScrubber({ id, fresh, frame, length, markIn, markOut, re
   }, [queue]);
   useEffect(() => {
     queue.cancel();
+    pointerActive.current = false;
+    desired.current = null;
+    setDragging(false);
+    setUnconfirmed(false);
     setDraft(null);
     setResults([]);
   }, [key, enabled, queue]);
   useEffect(() => {
-    if (busy || draft === null) return;
-    if (frame === draft) { setDraft(null); return; }
-    const timer = window.setTimeout(() => setDraft(null), 750);
+    if (busy || dragging || draft === null) return;
+    if (frame === draft && acknowledged.current === version.current) {
+      desired.current = null;
+      setDraft(null);
+      setUnconfirmed(false);
+      return;
+    }
+    // Never replace the requested position with old telemetry on a timer.
+    // A 2xx command response is not proof that the player reached the frame.
+    const timer = window.setTimeout(() => setUnconfirmed(true), 5000);
     return () => window.clearTimeout(timer);
-  }, [busy, draft, frame]);
+  }, [busy, dragging, draft, frame]);
 
   const begin = () => {
     if (!latest.current.enabled) return;
     gestureContext.current = latest.current.key;
     queue.resume();
     setResults([]);
+    setUnconfirmed(false);
   };
   const change = (value: number) => {
     if (!enabled || length === null) return;
     const destination = clampSeekFrame(value, length);
     if (destination === null) return;
+    if (desired.current !== destination) version.current += 1;
+    desired.current = destination;
     setDraft(destination);
     queue.enqueue(destination);
+  };
+  const release = () => {
+    if (!pointerActive.current) return;
+    pointerActive.current = false;
+    // Use the last actual input value, not the latest (possibly older) poll.
+    // The queue deduplicates a final frame already queued during the drag.
+    if (latest.current.enabled && desired.current !== null) queue.enqueue(desired.current);
+    setDragging(false);
   };
   const max = Math.max(0, Math.floor(length ?? 0) - 1);
   const percent = (value: number | null) => value !== null && max > 0 ? Math.max(0, Math.min(100, value / max * 100)) : 0;
@@ -94,14 +126,29 @@ export function TimelineScrubber({ id, fresh, frame, length, markIn, markOut, re
           aria-describedby={`scrub-hint-${id}`}
           data-testid={`input-scrub-${id}`}
           className="absolute inset-0 z-10 m-0 h-full w-full touch-none cursor-ew-resize opacity-0 disabled:cursor-not-allowed"
-          onPointerDown={begin}
+          onPointerDown={(event) => {
+            begin();
+            pointerActive.current = true;
+            setDragging(true);
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerUp={release}
+          onLostPointerCapture={release}
           onKeyDown={(event) => { if (!event.repeat) begin(); }}
           onChange={(event) => change(Number(event.target.value))}
-          onPointerCancel={() => { queue.cancel(); setDraft(null); }}
+          onPointerCancel={() => {
+            pointerActive.current = false;
+            desired.current = null;
+            queue.cancel();
+            setDragging(false);
+            setDraft(null);
+          }}
         />
       </div>
       <p id={`scrub-hint-${id}`} className="mt-1 text-[10px] text-muted-foreground">
-        {reason || (draft !== null ? `Seek requested: frame ${draft}. Playback pauses while scrubbing.` : 'Click or drag to scrub · arrows seek by frame · pauses playback')}
+        {reason || (unconfirmed && draft !== null
+          ? `Server has not confirmed frame ${draft}. Reported frame: ${frame ?? 'unavailable'}.`
+          : draft !== null ? `Seek requested: frame ${draft}. Playback pauses while scrubbing.` : 'Click or drag to scrub · arrows seek by frame · pauses playback')}
       </p>
       {failed && <div className="mt-2"><ResultStack results={results} /></div>}
     </div>
