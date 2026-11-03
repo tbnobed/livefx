@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { fmt, num, pick, targetIds, useConfirm, useFx, useRunner, type RunResult, type SlotId } from '@/lib/fx';
-import { ConnPill, GateNote, PageHeader, ResultStack, SlotBadge, Stat } from '@/components/fx-ui';
+import { ConnPill, GateNote, ResultStack, SlotBadge, Stat } from '@/components/fx-ui';
 import { SnapshotPreview } from '@/components/snapshot-preview';
 import { playerBlockReason } from '@/lib/player-state';
 
@@ -230,22 +230,32 @@ function RecentActivity() {
 }
 
 export default function Overview() {
-  const { target, status, servers, label } = useFx();
+  const { target, status, servers } = useFx();
   const ids = targetIds(target);
   const configured = servers.filter((s) => ids.includes(s.id as SlotId) && s.baseUrl).length;
   const online = ids.filter((i) => status(i).data?.connection === 'online').length;
+  const playerReady = ids.filter((i) => playerBlockReason(status(i).data) === null).length;
+  const armed = servers.filter((s) => ids.includes(s.id as SlotId) && s.allowControl).length;
   return (
     <>
-      <PageHeader
-        kicker="Overview"
-        title={target === 'both' ? 'Both servers. One desk.' : label(target)}
-        desc={`${configured} of ${ids.length} selected slots configured · ${online} online. Status polls every 3 seconds; opt-in shot snapshots are still images, not live video.`}
-        right={
+      <h1 className="sr-only">Overview</h1>
+      <section aria-label="Selected server status" className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { key: 'configured', label: 'Configured', count: configured },
+            { key: 'online', label: 'Online', count: online },
+            { key: 'player-ready', label: 'Player ready', count: playerReady },
+            { key: 'armed', label: 'Control armed', count: armed },
+          ].map((widget) => (
+            <div key={widget.key} className="panel p-3">
+              <Stat k={widget.label} v={`${widget.count} / ${ids.length}`} testid={`overview-status-${widget.key}`} />
+            </div>
+          ))}
+        </div>
           <Button data-testid="button-refresh-status" variant="outline" size="sm" onClick={() => ids.forEach((i) => status(i).refetch())}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> {ids.length > 1 ? 'Re-check both' : 'Re-check server'}
           </Button>
-        }
-      />
+      </section>
       <div className={cn('grid gap-4', ids.length > 1 && 'lg:grid-cols-2')}>
         {ids.map((i) => (
           <ServerCard key={i} id={i} />
