@@ -36,7 +36,7 @@ async function readStatus(server: FxServerRecord): Promise<Status> {
   }
   const warnings: string[] = [];
   if (!application.ok) warnings.push(`Application state unavailable: ${application.error}`);
-  if (!playmode.ok && application.data.module === "Player") warnings.push(`Player state unavailable: ${playmode.error}`);
+  if (!playmode.ok && String(application.data.module).toLowerCase() === "player") warnings.push(`Player state unavailable: ${playmode.error}`);
   if (system.data.rest_version && system.data.rest_version !== API_CONTRACT_VERSION) {
     warnings.push(`Connected API ${String(system.data.rest_version)}; command catalog targets ${API_CONTRACT_VERSION}. Confirm compatibility before sending advanced commands.`);
   }

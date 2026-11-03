@@ -48,6 +48,8 @@ The requested product controls two existing Assimilate Live FX servers using the
 
 The user chose periodically refreshed snapshots, not a separate live video stream. Keep preview capture explicitly opt-in and distinguish shot stills from live/program video. Do not change playback or write snapshot files for monitoring.
 
+The Server A / Server B / Both tabs are app-wide scopes, not just command targets. Every page must show only the selected server's information and controls; combined previews and two-server views belong only under Both. Do not introduce independent page-level server selectors that contradict the global tab.
+
 ## Gotchas
 
 - The user runs Ubuntu inside WSL2 with Docker Engine (no Docker Desktop required) and needs access from other LAN machines. Keep self-hosting independent of Replit services. Default binding stays localhost; `bash scripts/docker-start.sh --lan` explicitly enables trusted-LAN binding. `scripts/windows-lan.ps1` sets up NAT forwarding with a Private-profile/local-subnet firewall rule. No operator login exists: do not expose to untrusted users or the internet. See `deploy/docker/README.md`.

@@ -80,6 +80,7 @@ function describeError(data: JsonObject, status: number): string {
   const error = data.error;
   let detail = typeof error === "string" ? error
     : error && typeof error === "object" ? JSON.stringify(error)
+    : typeof data.details === "string" ? data.details
     : typeof data.message === "string" ? data.message : `Live FX returned HTTP ${status}.`;
   return detail.slice(0, 1000);
 }

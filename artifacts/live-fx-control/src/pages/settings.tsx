@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { SLOTS, errMsg, fmt, pick, useConfirm, useFx, type SlotId } from '@/lib/fx';
+import { targetIds, errMsg, fmt, pick, useConfirm, useFx, type SlotId } from '@/lib/fx';
 import { ConnPill, PageHeader, SlotBadge } from '@/components/fx-ui';
 
 function SlotForm({ id }: { id: SlotId }) {
@@ -118,24 +118,25 @@ function SlotForm({ id }: { id: SlotId }) {
 }
 
 export default function Settings() {
-  const { serversError, refetchServers } = useFx();
+  const { target, serversError, refetchServers } = useFx();
+  const ids = targetIds(target);
   const notes = [
-    { icon: KeyRound, t: 'API keys stay server-side', b: 'If your Live FX servers require a key, add LIVE_FX_SERVER_A_KEY and LIVE_FX_SERVER_B_KEY using the Secrets tool. This app never collects or displays keys.' },
+    { icon: KeyRound, t: 'API keys stay server-side', b: `Selected key settings: ${ids.map((id) => id === 'server-a' ? 'LIVE_FX_SERVER_A_KEY' : 'LIVE_FX_SERVER_B_KEY').join(' and ')}. Set these on the backend using the secure key setup. This app never collects or displays keys.` },
     { icon: Network, t: 'Private addresses need a route', b: 'Local addresses like 192.168.x.x or .local hosts are not reachable from a hosted app. Use a secure tunnel or VPN-exposed HTTPS endpoint.' },
     { icon: ShieldCheck, t: 'Version requirement', b: 'The REST API requires Live FX 9.9 build 1205 or later. The version shown is read from the server response only. Docs: github.com/Assimilate-Inc/Assimilate-REST' },
     { icon: ShieldAlert, t: 'Trusted-operator prototype', b: 'There is no sign-in. Add access controls before exposing this desk to an untrusted network.' },
   ];
   return (
     <>
-      <PageHeader kicker="Settings" title="Server slots" desc="Configure the two Live FX servers. Changes are saved only when you click Save; the status check is the connection test." />
+      <PageHeader kicker="Settings" title="Server slots" desc="Configure the selected server slots. Changes are saved only when you click Save; the status check is the connection test." />
       {serversError && (
         <div className="mb-4 flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
           Could not load slot settings.
           <Button data-testid="button-retry-servers" size="sm" variant="outline" onClick={refetchServers}>Retry</Button>
         </div>
       )}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {SLOTS.map((i) => <SlotForm key={i} id={i} />)}
+      <div className={cn('grid gap-4', ids.length > 1 && 'lg:grid-cols-2')}>
+        {ids.map((i) => <SlotForm key={i} id={i} />)}
       </div>
       <div className="mt-6 grid gap-3 md:grid-cols-2">
         {notes.map((n) => (

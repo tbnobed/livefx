@@ -5,9 +5,10 @@ import { useGetActivity, getGetActivityQueryKey } from '@workspace/api-client-re
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { SLOTS, fmt, num, pick, targetIds, useConfirm, useFx, useRunner, type RunResult, type SlotId } from '@/lib/fx';
+import { fmt, num, pick, targetIds, useConfirm, useFx, useRunner, type RunResult, type SlotId } from '@/lib/fx';
 import { ConnPill, GateNote, PageHeader, ResultStack, SlotBadge, Stat } from '@/components/fx-ui';
 import { SnapshotPreview } from '@/components/snapshot-preview';
+import { playerBlockReason } from '@/lib/player-state';
 
 function ServerCard({ id }: { id: SlotId }) {
   const { server, status, serversLoading } = useFx();
@@ -122,8 +123,10 @@ function Transport() {
   const { run, pending } = useRunner();
   const [results, setResults] = useState<RunResult[]>([]);
   const ids = targetIds(target);
-  const can = ids.every((i) => gate(i).write);
+  const blockedPlayers = ids.filter((i) => gate(i).read && playerBlockReason(status(i).data) !== null);
+  const can = ids.every((i) => gate(i).write && playerBlockReason(status(i).data) === null);
   const send = async (desc: string, body: Record<string, unknown> | ((id: SlotId) => Record<string, unknown>), needConfirm = false) => {
+    if (!can || pending) return;
     if (needConfirm) {
       const ok = await confirm({ title: desc, targets: ids.map(label), action: desc, body: ids.length > 1 ? 'Sent as separate requests to each server. Start times are not synchronized.' : undefined });
       if (!ok) return;
@@ -142,6 +145,13 @@ function Transport() {
         {pending && <span className="mono text-[10px] uppercase text-muted-foreground">sending…</span>}
       </div>
       <GateNote ids={ids} />
+      {blockedPlayers.length > 0 && (
+        <div data-testid="transport-player-required" className="mt-3 space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950" role="status">
+          {blockedPlayers.map((id) => <p key={id}><b>{label(id)}:</b> {playerBlockReason(status(id).data)}</p>)}
+          {ids.length > 1 && <p>Both-server transport stays disabled until both players are ready.</p>}
+          <Link href="/projects" className="inline-block font-semibold underline" data-testid="link-enter-player">Open Projects / timelines</Link>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap gap-1.5">
         <Button data-testid="button-goto-start" variant="outline" className={btn} disabled={!can || pending} onClick={() => send('Go to frame 0', { frame: 0 })} title="Frame 0">
           <SkipBack className="h-4 w-4" />
@@ -185,8 +195,10 @@ function Transport() {
 }
 
 function RecentActivity() {
+  const { target } = useFx();
+  const ids = targetIds(target);
   const { data, isLoading } = useGetActivity({ query: { queryKey: getGetActivityQueryKey(), refetchInterval: 5000 } });
-  const items = (data ?? []).slice(0, 7);
+  const items = (data ?? []).filter((entry) => ids.includes(entry.serverId as SlotId)).slice(0, 7);
   return (
     <div className="panel rise p-4">
       <div className="mb-2 flex items-center justify-between">
@@ -218,23 +230,24 @@ function RecentActivity() {
 }
 
 export default function Overview() {
-  const { target, status, servers } = useFx();
-  const configured = servers.filter((s) => s.baseUrl).length;
-  const online = SLOTS.filter((i) => status(i).data?.connection === 'online').length;
+  const { target, status, servers, label } = useFx();
+  const ids = targetIds(target);
+  const configured = servers.filter((s) => ids.includes(s.id as SlotId) && s.baseUrl).length;
+  const online = ids.filter((i) => status(i).data?.connection === 'online').length;
   return (
     <>
       <PageHeader
         kicker="Overview"
-        title="Two servers. One desk."
-        desc={`${configured} of 2 slots configured · ${online} online. Status polls every 3 seconds; opt-in shot snapshots are still images, not live video.`}
+        title={target === 'both' ? 'Both servers. One desk.' : label(target)}
+        desc={`${configured} of ${ids.length} selected slots configured · ${online} online. Status polls every 3 seconds; opt-in shot snapshots are still images, not live video.`}
         right={
-          <Button data-testid="button-refresh-status" variant="outline" size="sm" onClick={() => SLOTS.forEach((i) => status(i).refetch())}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Re-check both
+          <Button data-testid="button-refresh-status" variant="outline" size="sm" onClick={() => ids.forEach((i) => status(i).refetch())}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> {ids.length > 1 ? 'Re-check both' : 'Re-check server'}
           </Button>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-2">
-        {SLOTS.map((i) => (
+      <div className={cn('grid gap-4', ids.length > 1 && 'lg:grid-cols-2')}>
+        {ids.map((i) => (
           <ServerCard key={i} id={i} />
         ))}
       </div>

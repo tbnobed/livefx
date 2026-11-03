@@ -99,13 +99,14 @@ const ConfirmCtx = createContext<(o: ConfirmOpts) => Promise<boolean>>(() => Pro
 
 export function FxProvider({ children }: { children: ReactNode }) {
   const list = useListServers();
-  const a = useGetServerStatus('server-a', { query: { queryKey: getGetServerStatusQueryKey('server-a'), refetchInterval: 3000 } });
-  const b = useGetServerStatus('server-b', { query: { queryKey: getGetServerStatusQueryKey('server-b'), refetchInterval: 3000 } });
   const [target, setTargetState] = useState<Target>(() => {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem('lfx-target') : null;
     return v === 'server-b' || v === 'both' ? v : 'server-a';
   });
+  const a = useGetServerStatus('server-a', { query: { queryKey: getGetServerStatusQueryKey('server-a'), enabled: target !== 'server-b', refetchInterval: 3000 } });
+  const b = useGetServerStatus('server-b', { query: { queryKey: getGetServerStatusQueryKey('server-b'), enabled: target !== 'server-a', refetchInterval: 3000 } });
   const setTarget = (t: Target) => {
+    if (t !== target) close(false);
     setTargetState(t);
     localStorage.setItem('lfx-target', t);
   };

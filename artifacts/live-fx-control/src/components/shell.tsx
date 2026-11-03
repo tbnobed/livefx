@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Activity, Clapperboard, FolderTree, Palette, Settings2, Terminal, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SLOTS, useFx } from '@/lib/fx';
+import { targetIds, useFx } from '@/lib/fx';
 import { ConnPill, SlotBadge, TargetSwitch } from '@/components/fx-ui';
 
 const NAV = [
@@ -54,7 +54,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto hidden space-y-2 border-t border-sidebar-border p-3 md:block">
           <div className="mono text-[10px] uppercase tracking-widest text-sidebar-foreground/45">Slots</div>
-          {SLOTS.map((id) => {
+          {targetIds(target).map((id) => {
             const s = server(id);
             const st = status(id).data;
             return (

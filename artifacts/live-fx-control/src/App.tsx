@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
-import { FxProvider } from '@/lib/fx';
+import { FxProvider, useFx } from '@/lib/fx';
 import { Shell } from '@/components/shell';
 import Overview from '@/pages/overview';
 import Projects from '@/pages/projects';
@@ -18,10 +18,13 @@ import Settings from '@/pages/settings';
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
 function Router() {
+  const { target } = useFx();
   return (
     <Shell>
       <RoutedErrorBoundary>
-        <Switch>
+        {/* Never carry a previous target's command draft/results into a new scope.
+            Unmounting also stops its snapshot polling. */}
+        <Switch key={target}>
           <Route path="/" component={Overview} />
           <Route path="/projects" component={Projects} />
           <Route path="/grading" component={Grading} />

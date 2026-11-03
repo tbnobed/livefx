@@ -4,8 +4,9 @@ import { FolderOpen, FolderX, Layers, Boxes, Film, RefreshCw, Palette, LogIn } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { asArr, fmt, pick, useConfirm, useFx, useRunner, type RunResult, type SlotId, type Target } from '@/lib/fx';
-import { Empty, GateNote, JsonBlock, PageHeader, ResultStack, TargetSwitch } from '@/components/fx-ui';
+import { asArr, fmt, pick, targetIds, useConfirm, useFx, useRunner, type RunResult, type SlotId } from '@/lib/fx';
+import { Empty, GateNote, JsonBlock, PageHeader, ResultStack } from '@/components/fx-ui';
+import { playerBlockReason } from '@/lib/player-state';
 
 type Rec = Record<string, unknown>;
 const nameOf = (o: Rec) => fmt(o.name ?? o.title ?? o.uuid ?? o.id);
@@ -40,9 +41,14 @@ function Column({ title, icon, items, loading, onFetch, canRead, render, emptyTe
 }
 
 export default function Projects() {
-  const { target: gt, gate, label, status } = useFx();
-  const [t, setT] = useState<Target>(gt === 'both' ? 'server-a' : gt);
-  const id = t as SlotId;
+  const { target } = useFx();
+  return <div className="space-y-8">{targetIds(target).map((id) => (
+    <section key={id} data-testid={`projects-server-${id}`}><ServerProjects id={id} /></section>
+  ))}</div>;
+}
+
+function ServerProjects({ id }: { id: SlotId }) {
+  const { gate, label, status, setTarget } = useFx();
   const g = gate(id);
   const confirm = useConfirm();
   const { run } = useRunner();
@@ -51,11 +57,6 @@ export default function Projects() {
   const [last, setLast] = useState<RunResult[]>([]);
   const [filter, setFilter] = useState('');
 
-  const switchServer = (n: Target) => {
-    setT(n);
-    setLists({ projects: null, groups: null, constructs: null, slots: null });
-    setLast([]);
-  };
   const fetchList = async (key: string, path: string) => {
     setBusy(key);
     const [r] = await run([id], 'GET', path);
@@ -77,9 +78,8 @@ export default function Projects() {
     <>
       <PageHeader
         kicker="Projects"
-        title="Project explorer"
-        desc="Browse projects, groups, constructs and slots on one server at a time. Opening a project or entering a timeline changes what that server is playing."
-        right={<TargetSwitch value={t} onChange={switchServer} allowBoth={false} testid="projects-target" />}
+        title={`Project explorer · ${label(id)}`}
+        desc="Projects, groups, constructs and slots belong only to this server. Opening a project or entering a timeline changes what this server is playing."
       />
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm">
         <span className="kicker">Open project on {label(id)}</span>
@@ -89,6 +89,11 @@ export default function Projects() {
         </Button>
       </div>
       <div className="mb-4"><GateNote ids={[id]} /></div>
+      {g.read && playerBlockReason(status(id).data) && (
+        <p data-testid={`projects-enter-player-${id}`} className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+          Opening a project does not start the player. Fetch <b>Constructs</b>, then choose <b>Enter</b> beside the timeline you want to play. If no project is open, open one first.
+        </p>
+      )}
       {!g.read ? (
         <Empty icon={<FolderOpen className="h-5 w-5" />} title={`${label(id)} is not reachable`} body={`${g.reason}. Project data is only shown from a real server response.`} action={<Link href="/settings" className="text-sm font-semibold underline">Open settings</Link>} />
       ) : (
@@ -139,7 +144,7 @@ export default function Projects() {
                     <div className="mono truncate text-[10px] text-muted-foreground">{fmt(shot)}</div>
                   </div>
                   {shot && (
-                    <Link href={`/grading?server=${id}&shot=${encodeURIComponent(shot)}`} data-testid={`link-grade-slot-${i}`} className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-semibold hover:bg-card">
+                    <Link href={`/grading?server=${id}&shot=${encodeURIComponent(shot)}`} onClick={() => setTarget(id)} data-testid={`link-grade-slot-${i}`} className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-semibold hover:bg-card">
                       <Palette className="h-3 w-3" /> Grade
                     </Link>
                   )}

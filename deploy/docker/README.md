@@ -103,6 +103,15 @@ Never forward these unauthenticated control ports to the public internet.
 
 ## Normal operation
 
+### Server tabs
+
+The top Server A / Server B / Both tabs scope every page, not just commands.
+Single-server tabs show only that server's preview, timeline, projects, grading,
+render queue, command results, settings, and activity. Both shows both servers,
+with separate project and grading editors. Switching scope clears page-local
+unsaved drafts/results and stops previews from the previous scope, preventing
+an old shot UUID or command draft from carrying into another server.
+
 ### Snapshot previews
 
 On Overview, each connected server has **Capture now** and opt-in **Auto

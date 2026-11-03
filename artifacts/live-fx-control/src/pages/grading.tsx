@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { asArr, fmt, num, pick, useConfirm, useFx, useRunner, type RunResult, type SlotId, type Target } from '@/lib/fx';
-import { Empty, GateNote, JsonBlock, PageHeader, ResultStack, TargetSwitch } from '@/components/fx-ui';
+import { asArr, fmt, num, pick, targetIds, useConfirm, useFx, useRunner, type RunResult, type SlotId } from '@/lib/fx';
+import { Empty, GateNote, JsonBlock, PageHeader, ResultStack } from '@/components/fx-ui';
 
 type Rec = Record<string, unknown>;
 const WHEELS = ['lift', 'gamma', 'gain', 'offset'] as const;
@@ -14,15 +14,20 @@ const CH = ['m', 'r', 'g', 'b'] as const;
 const CH_COLOR: Record<string, string> = { m: '222 10% 45%', r: '356 70% 50%', g: '145 50% 38%', b: '210 70% 45%' };
 
 export default function Grading() {
-  const { target: gt, gate, label, status } = useFx();
+  const { target } = useFx();
+  return <div className="space-y-8">{targetIds(target).map((id) => (
+    <section key={id} data-testid={`grading-server-${id}`}><ServerGrading id={id} /></section>
+  ))}</div>;
+}
+
+function ServerGrading({ id }: { id: SlotId }) {
+  const { gate, label, status } = useFx();
   const params = new URLSearchParams(window.location.search);
   const qs = params.get('server');
-  const [t, setT] = useState<Target>(qs === 'server-a' || qs === 'server-b' ? qs : gt === 'both' ? 'server-a' : gt);
-  const id = t as SlotId;
   const g = gate(id);
   const confirm = useConfirm();
   const { run, pending } = useRunner();
-  const [shot, setShot] = useState(params.get('shot') ?? '');
+  const [shot, setShot] = useState(qs === id ? params.get('shot') ?? '' : '');
   const [grade, setGrade] = useState<Rec | null>(null);
   const [edit, setEdit] = useState<Rec>({});
   const [controls, setControls] = useState<Rec[] | null>(null);
@@ -97,7 +102,7 @@ export default function Grading() {
 
   return (
     <>
-      <PageHeader kicker="Grading" title="Shot grade" desc="Read a shot's grade, edit wheel values, and send only the fields you changed. Nothing is sent until you apply." right={<TargetSwitch value={t} onChange={setT} allowBoth={false} testid="grading-target" />} />
+      <PageHeader kicker="Grading" title={`Shot grade · ${label(id)}`} desc="Read this server's shot grade, edit wheel values, and send only the fields you changed. Nothing is sent until you apply." />
       <div className="panel mb-4 flex flex-wrap items-end gap-2 p-3">
         <div className="min-w-[260px] flex-1">
           <div className="kicker mb-1">Shot UUID on {label(id)}</div>
