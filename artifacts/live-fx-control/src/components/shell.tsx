@@ -22,11 +22,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-[100dvh] flex-col md:flex-row">
       <aside className="flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-[100dvh] md:w-60">
         <div className="flex items-center gap-2.5 px-4 py-4">
-          <div className="grid h-8 w-8 grid-cols-2 gap-0.5 rounded-sm bg-sidebar-accent p-1">
-            <span className="rounded-[2px] bg-[hsl(var(--slot-a))]" />
-            <span className="rounded-[2px] bg-[hsl(var(--slot-b))]" />
-            <span className="col-span-2 rounded-[2px] bg-[hsl(var(--armed))]" />
-          </div>
+          <img src={`${import.meta.env.BASE_URL}branding/assimilate-logo.png`} alt="Assimilate" width={44} height={44} className="h-11 w-11 shrink-0 object-contain" data-testid="img-assimilate-logo" />
           <div>
             <div className="text-sm font-extrabold tracking-tight text-sidebar-accent-foreground">Live FX Control</div>
             <div className="mono text-[10px] uppercase tracking-widest text-sidebar-foreground/50">2 slot operator desk</div>
