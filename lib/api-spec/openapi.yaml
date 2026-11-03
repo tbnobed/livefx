@@ -1,36 +1,180 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Dual Assimilate Live FX server control API
 servers:
   - url: /api
-    description: Base API path
-tags:
-  - name: health
-    description: Health operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
-      tags: [health]
-      summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /fx/servers:
+    get:
+      operationId: listServers
+      responses:
+        "200":
+          description: The two configured server slots
+          content:
+            application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                type: array
+                items: { $ref: "#/components/schemas/FxServer" }
+  /fx/servers/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      operationId: configureServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerSettings" }
+      responses:
+        "200":
+          description: Updated server
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FxServer" }
+  /fx/servers/{id}/status:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getServerStatus
+      responses:
+        "200":
+          description: Current connection and upstream state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerStatus" }
+  /fx/servers/{id}/command:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: executeCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CommandInput" }
+      responses:
+        "200":
+          description: Upstream result, including explicit upstream success or failure
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommandResult" }
+  /fx/catalog:
+    get:
+      operationId: getCommandCatalog
+      responses:
+        "200":
+          description: Official Assimilate REST operations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CommandDefinition" }
+  /fx/activity:
+    get:
+      operationId: getActivity
+      responses:
+        "200":
+          description: Recent operator commands and configuration changes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActivityItem" }
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
-
+        status: { type: string }
+    JsonData:
+      type: object
+      additionalProperties: true
+    FxServer:
+      type: object
+      required: [id, name, role, baseUrl, allowControl, keyConfigured]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        baseUrl: { type: string }
+        allowControl: { type: boolean }
+        keyConfigured: { type: boolean }
+    ServerSettings:
+      type: object
+      required: [name, role, baseUrl, allowControl]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        role: { type: string, maxLength: 80 }
+        baseUrl: { type: string, maxLength: 500 }
+        allowControl: { type: boolean }
+    ServerStatus:
+      type: object
+      required: [id, connection, checkedAt, latencyMs, error, system, application, playmode, warnings]
+      properties:
+        id: { type: string }
+        connection: { type: string, enum: [unconfigured, online, offline] }
+        checkedAt: { type: string }
+        latencyMs: { type: ["number", "null"] }
+        error: { type: ["string", "null"] }
+        system: { $ref: "#/components/schemas/JsonData" }
+        application: { $ref: "#/components/schemas/JsonData" }
+        playmode: { $ref: "#/components/schemas/JsonData" }
+        warnings:
+          type: array
+          items: { type: string }
+    CommandInput:
+      type: object
+      required: [method, path]
+      properties:
+        method: { type: string, enum: [GET, POST, PUT, PATCH, DELETE] }
+        path: { type: string, minLength: 1, maxLength: 2000 }
+        body: { $ref: "#/components/schemas/JsonData" }
+        confirmed: { type: boolean }
+    CommandResult:
+      type: object
+      required: [ok, status, durationMs, data, error]
+      properties:
+        ok: { type: boolean }
+        status: { type: integer }
+        durationMs: { type: number }
+        data: { $ref: "#/components/schemas/JsonData" }
+        error: { type: ["string", "null"] }
+    CommandDefinition:
+      type: object
+      required: [id, method, path, summary, description, category, bodyExample, bodySchema, parameters, dangerous]
+      properties:
+        id: { type: string }
+        method: { type: string }
+        path: { type: string }
+        summary: { type: string }
+        description: { type: string }
+        category: { type: string }
+        bodyExample: { type: string }
+        bodySchema: { type: string }
+        parameters:
+          type: array
+          items: { type: string }
+        dangerous: { type: boolean }
+    ActivityItem:
+      type: object
+      required: [id, serverId, serverName, action, ok, timestamp, detail]
+      properties:
+        id: { type: integer }
+        serverId: { type: string }
+        serverName: { type: string }
+        action: { type: string }
+        ok: { type: boolean }
+        timestamp: { type: string }
+        detail: { type: string }

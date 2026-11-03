@@ -31,4 +31,15 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  req.log.error({ err: error }, "API request failed");
+  if (!res.headersSent) {
+    const status = typeof error === "object" && error !== null && "status" in error
+      ? Number(error.status) : 500;
+    res.status(status >= 400 && status < 500 ? status : 500).json({
+      error: status === 413 ? "Request body is too large." : status === 400 ? "Invalid JSON request." : "The control center could not complete this request. Check the server logs.",
+    });
+  }
+});
+
 export default app;

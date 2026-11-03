@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Live FX Control"
+description = "A dual-server operational control center for Assimilate Live FX with server connections, transport, project and timeline management, grading controls and a documented REST command console."
+version = "1.0.0"
+id = "artifacts/live-fx-control"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18726
+
+[services.development]
+run = "pnpm --filter @workspace/live-fx-control run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/live-fx-control", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/live-fx-control/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18726"
+BASE_PATH = "/"
