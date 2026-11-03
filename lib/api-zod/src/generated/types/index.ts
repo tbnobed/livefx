@@ -17,3 +17,4 @@ export * from './jsonData';
 export * from './serverSettings';
 export * from './serverStatus';
 export * from './serverStatusConnection';
+export * from './snapshotResult';

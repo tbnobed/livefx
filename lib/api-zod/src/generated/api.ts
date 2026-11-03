@@ -70,6 +70,23 @@ export const GetServerStatusResponse = zod.object({
 })
 
 
+/**
+ * Request a proxy JPEG of the current player shot. Never writes a file or changes playback. Images are transient and not stored.
+ */
+export const CaptureServerSnapshotParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CaptureServerSnapshotResponse = zod.object({
+  "ok": zod.boolean(),
+  "image": zod.string().nullable(),
+  "capturedAt": zod.string().nullable(),
+  "shotUuid": zod.string().nullable(),
+  "frame": zod.number().int().nullable(),
+  "error": zod.string().nullable()
+})
+
+
 export const ExecuteCommandParams = zod.object({
   "id": zod.coerce.string()
 })

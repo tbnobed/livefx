@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { SLOTS, fmt, num, pick, targetIds, useConfirm, useFx, useRunner, type RunResult, type SlotId } from '@/lib/fx';
-import { ConnPill, GateNote, NoSignal, PageHeader, ResultStack, SlotBadge, Stat } from '@/components/fx-ui';
+import { ConnPill, GateNote, PageHeader, ResultStack, SlotBadge, Stat } from '@/components/fx-ui';
+import { SnapshotPreview } from '@/components/snapshot-preview';
 
 function ServerCard({ id }: { id: SlotId }) {
   const { server, status, serversLoading } = useFx();
@@ -38,7 +39,7 @@ function ServerCard({ id }: { id: SlotId }) {
         </div>
       </div>
       <div className="px-4">
-        <NoSignal id={id} compact />
+        <SnapshotPreview key={`${id}:${s?.baseUrl}`} id={id} />
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 sm:grid-cols-4">
         <Stat k="Latency" v={st?.latencyMs != null ? `${st.latencyMs} ms` : '—'} testid={`text-latency-${id}`} />
@@ -225,7 +226,7 @@ export default function Overview() {
       <PageHeader
         kicker="Overview"
         title="Two servers. One desk."
-        desc={`${configured} of 2 slots configured · ${online} online. Status polls every 3 seconds; nothing here is a video feed.`}
+        desc={`${configured} of 2 slots configured · ${online} online. Status polls every 3 seconds; opt-in shot snapshots are still images, not live video.`}
         right={
           <Button data-testid="button-refresh-status" variant="outline" size="sm" onClick={() => SLOTS.forEach((i) => status(i).refetch())}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Re-check both

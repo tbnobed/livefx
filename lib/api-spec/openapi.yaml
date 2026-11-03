@@ -53,6 +53,18 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ServerStatus" }
+  /fx/servers/{id}/snapshot:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: captureServerSnapshot
+      description: Request a proxy JPEG of the current player shot. Never writes a file or changes playback. Images are transient and not stored.
+      responses:
+        "200":
+          description: Snapshot result with explicit capture failure if unsupported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapshotResult" }
   /fx/servers/{id}/command:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -134,6 +146,16 @@ components:
         warnings:
           type: array
           items: { type: string }
+    SnapshotResult:
+      type: object
+      required: [ok, image, capturedAt, shotUuid, frame, error]
+      properties:
+        ok: { type: boolean }
+        image: { type: ["string", "null"] }
+        capturedAt: { type: ["string", "null"] }
+        shotUuid: { type: ["string", "null"] }
+        frame: { type: ["integer", "null"] }
+        error: { type: ["string", "null"] }
     CommandInput:
       type: object
       required: [method, path]

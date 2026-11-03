@@ -5,10 +5,12 @@ import {
   ConfigureServerBody, ConfigureServerParams, ConfigureServerResponse,
   ExecuteCommandBody, ExecuteCommandParams, ExecuteCommandResponse,
   GetServerStatusParams, GetServerStatusResponse,
+  CaptureServerSnapshotResponse,
   ListServersResponse, GetActivityResponse, GetCommandCatalogResponse,
 } from "@workspace/api-zod";
 import { catalog, keyConfigured, matchOperation, normalizeBaseUrl, upstream } from "../lib/fx-upstream";
 import { clearStatus, serverStatus } from "../lib/fx-status";
+import { clearSnapshots, serverSnapshot } from "../lib/fx-snapshot";
 
 const router: IRouter = Router();
 const busy = new Set<string>();
@@ -84,6 +86,7 @@ router.put("/fx/servers/:id", async (req, res): Promise<void> => {
       return rows;
     });
     clearStatus(server.id);
+    clearSnapshots(server.id);
     res.json(ConfigureServerResponse.parse(publicServer(updated)));
   } finally { busy.delete(server.id); }
 });
@@ -103,6 +106,17 @@ router.get("/fx/catalog", (_req, res) => {
 router.get("/fx/activity", async (_req, res): Promise<void> => {
   const entries = await db.select().from(fxActivity).orderBy(desc(fxActivity.id)).limit(150);
   res.json(GetActivityResponse.parse(entries.map((item) => ({ ...item, timestamp: item.timestamp.toISOString() }))));
+});
+
+router.post("/fx/servers/:id/snapshot", async (req, res): Promise<void> => {
+  const params = GetServerStatusParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid server." }); return; }
+  const server = await getServer(params.data.id);
+  if (!server) { res.status(404).json({ error: "Server slot not found." }); return; }
+  if (busy.has(server.id)) { res.status(409).json({ error: "A control command is running. Retry the snapshot afterward." }); return; }
+  // Explicitly requested image-only monitoring, available even when controls
+  // are disarmed. Never route arbitrary POSTs through this exception.
+  res.json(CaptureServerSnapshotResponse.parse(await serverSnapshot(server)));
 });
 
 router.post("/fx/servers/:id/command", async (req, res): Promise<void> => {

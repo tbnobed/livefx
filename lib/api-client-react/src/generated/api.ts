@@ -32,7 +32,8 @@ import type {
   FxServer,
   HealthStatus,
   ServerSettings,
-  ServerStatus
+  ServerStatus,
+  SnapshotResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -429,6 +430,77 @@ export function useGetServerStatus<TData = Awaited<ReturnType<typeof getServerSt
 
 
 
+
+export const getCaptureServerSnapshotUrl = (id: string,) => {
+
+
+
+
+  return `/api/fx/servers/${id}/snapshot`
+}
+
+/**
+ * Request a proxy JPEG of the current player shot. Never writes a file or changes playback. Images are transient and not stored.
+ */
+export const captureServerSnapshot = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<SnapshotResult> => {
+
+  return customFetch<SnapshotResult>(getCaptureServerSnapshotUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCaptureServerSnapshotMutationKey = () => ['captureServerSnapshot'] as const;
+
+export const getCaptureServerSnapshotMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof captureServerSnapshot>>, TError,CaptureServerSnapshotMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof captureServerSnapshot>>, TError,CaptureServerSnapshotMutationVariables, TContext> => {
+
+const mutationKey = getCaptureServerSnapshotMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof captureServerSnapshot>>, CaptureServerSnapshotMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  captureServerSnapshot(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CaptureServerSnapshotMutationResult = NonNullable<Awaited<ReturnType<typeof captureServerSnapshot>>>
+
+    export type CaptureServerSnapshotMutationError = ErrorType<unknown>
+    export type CaptureServerSnapshotMutationVariables = {id: string}
+
+    export const useCaptureServerSnapshot = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof captureServerSnapshot>>, TError,CaptureServerSnapshotMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof captureServerSnapshot>>,
+        TError,
+        CaptureServerSnapshotMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCaptureServerSnapshotMutationOptions(options), queryClient);
+    }
 
 export const getExecuteCommandUrl = (id: string,) => {
 

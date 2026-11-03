@@ -56,6 +56,20 @@ export interface ServerStatus {
   warnings: string[];
 }
 
+export interface SnapshotResult {
+  ok: boolean;
+  /** @nullable */
+  image: string | null;
+  /** @nullable */
+  capturedAt: string | null;
+  /** @nullable */
+  shotUuid: string | null;
+  /** @nullable */
+  frame: number | null;
+  /** @nullable */
+  error: string | null;
+}
+
 export type CommandInputMethod = typeof CommandInputMethod[keyof typeof CommandInputMethod];
 
 

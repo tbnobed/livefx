@@ -46,6 +46,8 @@ Dual-server monitoring, playback/record controls, project and timeline explorati
 
 The requested product controls two existing Assimilate Live FX servers using the official API, not a simulated dashboard.
 
+The user chose periodically refreshed snapshots, not a separate live video stream. Keep preview capture explicitly opt-in and distinguish shot stills from live/program video. Do not change playback or write snapshot files for monitoring.
+
 ## Gotchas
 
 - The user runs Ubuntu inside WSL2 with Docker Engine (no Docker Desktop required) and needs access from other LAN machines. Keep self-hosting independent of Replit services. Default binding stays localhost; `bash scripts/docker-start.sh --lan` explicitly enables trusted-LAN binding. `scripts/windows-lan.ps1` sets up NAT forwarding with a Private-profile/local-subnet firewall rule. No operator login exists: do not expose to untrusted users or the internet. See `deploy/docker/README.md`.
