@@ -9,13 +9,14 @@ import { asArr, errMsg, fmt, pick, targetIds, useConfirm, useFx, useRunner, type
 import { Empty, GateNote, JsonBlock, PageHeader, ResultStack } from '@/components/fx-ui';
 import { playerBlockReason } from '@/lib/player-state';
 import { PROJECT_LISTS, readProjectList, type ProjectListKey } from '@/lib/project-data';
+import { PROJECT_SORT_OPTIONS, sortProjects, type ProjectSort } from '@/lib/project-sort';
 
 type Rec = Record<string, unknown>;
 const nameOf = (o: Rec) => fmt(o.name ?? o.title ?? o.uuid ?? o.id);
 const uuidOf = (o: Rec) => (o.uuid ?? o.construct_uuid ?? o.shot_uuid ?? o.id) as string | undefined;
 
-function Column({ title, icon, items, loading, error, onFetch, canRead, render, emptyText, testid }: {
-  title: string; icon: React.ReactNode; items: Rec[] | null; loading: boolean; error?: string; onFetch: () => void; canRead: boolean; render: (o: Rec, i: number) => React.ReactNode; emptyText: string; testid: string;
+function Column({ title, icon, items, loading, error, onFetch, canRead, render, emptyText, testid, controls }: {
+  title: string; icon: React.ReactNode; items: Rec[] | null; loading: boolean; error?: string; onFetch: () => void; canRead: boolean; render: (o: Rec, i: number) => React.ReactNode; emptyText: string; testid: string; controls?: React.ReactNode;
 }) {
   return (
     <div className="panel flex min-h-[220px] flex-col">
@@ -27,6 +28,7 @@ function Column({ title, icon, items, loading, error, onFetch, canRead, render, 
           <RefreshCw className="mr-1 h-3 w-3" /> {loading ? 'Loading…' : 'Reload'}
         </Button>
       </div>
+      {controls && <div className="border-b p-2">{controls}</div>}
       <div className="flex-1 overflow-auto p-1.5">
         {loading ? (
           <div className="space-y-1.5 p-1.5">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
@@ -60,6 +62,7 @@ function ServerProjects({ id }: { id: SlotId }) {
   const [working, setWorking] = useState(false);
   const [last, setLast] = useState<RunResult[]>([]);
   const [filter, setFilter] = useState('');
+  const [sort, setSort] = useState<ProjectSort>('name-asc');
 
   const current = fmt(pick(status(id).data?.application, 'project'));
   const construct = fmt(pick(status(id).data?.playmode, 'construct_uuid'));
@@ -97,7 +100,9 @@ function ServerProjects({ id }: { id: SlotId }) {
       setWorking(false);
     }
   };
-  const projects = lists.projects?.filter((p) => nameOf(p).toLowerCase().includes(filter.toLowerCase())) ?? null;
+  const projects = lists.projects
+    ? sortProjects(lists.projects.filter((p) => nameOf(p).toLowerCase().includes(filter.toLowerCase())), sort)
+    : null;
 
   return (
     <>
@@ -124,6 +129,14 @@ function ServerProjects({ id }: { id: SlotId }) {
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Column title="Projects" testid="projects" icon={<FolderOpen className="h-4 w-4" />} items={projects} {...columnState('projects')} emptyText="No projects returned."
+            controls={
+              <label className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Sort</span>
+                <select data-testid={`select-project-sort-${id}`} aria-label={`Sort projects on ${label(id)}`} value={sort} onChange={(event) => setSort(event.target.value as ProjectSort)} className="min-w-0 flex-1 rounded border bg-background px-2 py-1.5 text-xs">
+                  {PROJECT_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            }
             render={(p, i) => (
               <li key={i} className="group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-secondary">
                 <div className="min-w-0 flex-1">
