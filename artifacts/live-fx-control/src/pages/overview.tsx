@@ -10,6 +10,7 @@ import { ConnPill, GateNote, ResultStack, SlotBadge, Stat } from '@/components/f
 import { SnapshotPreview } from '@/components/snapshot-preview';
 import { playerBlockReason } from '@/lib/player-state';
 import { useLivePlayer } from '@/lib/live-player';
+import { TimelineScrubber } from '@/components/timeline-scrubber';
 
 function ServerCard({ id }: { id: SlotId }) {
   const { server, status, serversLoading } = useFx();
@@ -85,7 +86,6 @@ function Timeline({ id }: { id: SlotId }) {
   const length = num(pick(pm, 'length'));
   const mi = num(pick(pm, 'mark_in'));
   const mo = num(pick(pm, 'mark_out'));
-  const pct = (v: number | null) => (v != null && length ? Math.min(100, Math.max(0, (v / length) * 100)) : null);
   const mode = fmt(pick(pm, 'mode'));
   return (
     <div data-testid={`timeline-${id}`} className="rounded-md border bg-card p-3">
@@ -100,13 +100,7 @@ function Timeline({ id }: { id: SlotId }) {
         )}
         <span data-testid={`text-timecode-${id}`} className="mono ml-auto text-sm font-bold tabular-nums">{online ? fmt(pick(pm, 'timecodec') ?? pick(pm, 'timecode')) : '--:--:--:--'}</span>
       </div>
-      <div className="relative h-7 overflow-hidden rounded-sm border bg-[repeating-linear-gradient(90deg,hsl(var(--muted))_0_1px,transparent_1px_24px)]">
-        {online && pct(mi) != null && pct(mo) != null && (
-          <div className="absolute inset-y-0 bg-[hsl(var(--armed)/.22)]" style={{ left: `${pct(mi)}%`, width: `${(pct(mo) ?? 0) - (pct(mi) ?? 0)}%` }} />
-        )}
-        {online && pct(frame) != null && <div data-testid={`playhead-${id}`} className="absolute inset-y-0 w-0.5 bg-destructive" style={{ left: `${pct(frame)}%` }} />}
-        {!online && <div className="mono absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-widest text-muted-foreground">timeline unavailable</div>}
-      </div>
+      <TimelineScrubber id={id} fresh={online} frame={frame} length={length} markIn={mi} markOut={mo} recording={mode === 'RECORD'} context={String(pick(pm, 'construct_uuid') ?? '')} />
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
         <Stat k="Frame" v={online ? fmt(frame) : '—'} testid={`text-frame-${id}`} />
         <Stat k="Length" v={online ? fmt(length) : '—'} />

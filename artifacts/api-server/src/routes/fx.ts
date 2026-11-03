@@ -13,6 +13,7 @@ import { catalog, keyConfigured, matchOperation, normalizeBaseUrl, upstream } fr
 import { clearStatus, serverStatus } from "../lib/fx-status";
 import { clearSnapshots, serverSnapshot } from "../lib/fx-snapshot";
 import { serverPlayer } from "../lib/fx-player";
+import { seekBlockReason } from "../lib/fx-seek";
 
 const router: IRouter = Router();
 const busy = new Set<string>();
@@ -167,6 +168,14 @@ router.post("/fx/servers/:id/command", async (req, res): Promise<void> => {
     lastCommand.set(server.id, Date.now());
   }
   try {
+    if (safeTransport && Object.hasOwn(input.body!, "frame")) {
+      // Seek safety must not depend on the browser's last telemetry sample.
+      // Read directly (not the telemetry cache) while holding the write lock.
+      const player = await upstream(server, "GET", "/application/player/playmode");
+      const reason = player.ok ? seekBlockReason(input.body!.frame, player.data)
+        : "Cannot verify the player state. Seek was not sent.";
+      if (reason) { res.status(409).json({ error: reason }); return; }
+    }
     // Write the audit intent before dispatch. A DB failure must not produce
     // an unaudited command against live equipment.
     const [entry] = await db.insert(fxActivity).values({

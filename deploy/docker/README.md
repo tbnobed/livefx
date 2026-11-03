@@ -124,6 +124,21 @@ Multiple browsers share in-flight reads and a short per-server cache to limit
 hardware load. This is near-real-time REST polling, not frame-lock or genlock.
 Snapshot images use their separate 5-second default refresh.
 
+### Timeline scrubbing
+
+Click or drag a timeline bar to seek that server; arrow keys seek by frame,
+and Home/End reach the timeline endpoints. Scrubbing pauses playback and does
+not automatically resume it. In Both view each bar still controls only its
+own server. Seeks are clamped to `0..length-1`, spaced at least 250 ms apart,
+and serialized with only the latest queued drag position retained.
+
+Scrubbing requires armed control and fresh player data, and is disabled while
+recording. The API additionally reads the current player state before a seek
+and rejects recording or out-of-range seeks, even if the browser's sample is
+old. Errors stop queued seeks without automatic retries. Changing server tabs
+or timelines cancels pending drag positions; a command already dispatched
+cannot be recalled. Snapshot images retain their normal refresh interval.
+
 ### Snapshot previews
 
 On Overview, each connected server has **Capture now** and **Auto
