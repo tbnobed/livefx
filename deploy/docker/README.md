@@ -156,9 +156,81 @@ reviewed migrations; rebuilding does not silently alter/drop existing columns.
 
 This is currently a **trusted local operator tool, without user authentication**.
 The published port binds only to `127.0.0.1` on the Docker host. Leave that default
-in place; local processes and users can still access it. Add authentication,
-authorization, and TLS before providing access to other computers or untrusted
-users. Do not expose the database, API, or Live FX servers publicly.
+in place unless intentionally enabling the trusted-LAN mode below. Local
+processes and users can still access it. Add authentication, authorization, and
+TLS before providing access to untrusted users. Never expose it publicly.
+
+## LAN access from other computers (Docker Engine inside WSL2)
+
+Anyone who can access this app can operate its controls. Use this only on a
+trusted studio LAN. No router port forwarding or public access is needed.
+
+These steps target WSL2's default **NAT** networking. Mirrored networking has
+different routing and Hyper-V firewall requirements; do not change networking
+modes or disable firewalls as a workaround.
+
+1. In Ubuntu, from this project's root, start with the explicit LAN option:
+
+   ```bash
+   bash scripts/docker-start.sh --lan
+   ```
+
+   This binds only the web service to all Ubuntu IPv4 interfaces. Database and
+   API services still have no published ports. Use `--lan` on subsequent starts;
+   starting without it restores the default loopback binding. Keep `.env` and
+   the named database volume; no data reset is necessary.
+
+2. From the same Ubuntu project directory, run:
+
+   ```bash
+   explorer.exe .
+   ```
+
+   Copy that folder's Windows/UNC path from File Explorer's address bar.
+
+3. Open **Windows PowerShell as Administrator**, change to that folder, and
+   run the included forwarding helper (replace the example folder path):
+
+   ```powershell
+   Set-Location "\\wsl.localhost\Ubuntu\home\YOUR_LINUX_USER\live-fx-control"
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-lan.ps1 -Distribution Ubuntu
+   ```
+
+   `Bypass` applies only to this invocation, not the machine's execution policy.
+   The script verifies Windows can reach the WSL service, forwards Windows TCP
+   8088 to Ubuntu, and allows incoming TCP 8088 **only on Private network
+   profiles, from the local subnet**. It will not replace an unrelated forwarding
+   rule. Use the distribution name from `wsl --list --verbose` if not `Ubuntu`.
+   To use a custom app port, supply `-Port` with the same port.
+
+4. Make sure your trusted studio Ethernet/Wi-Fi connection is marked **Private**
+   in Windows Settings. Do not mark a public/untrusted network Private.
+
+5. Run `ipconfig` in Windows. Find the **Windows Ethernet/Wi-Fi LAN IPv4 address**,
+   not the WSL/Docker virtual-adapter address. From another LAN machine, open:
+
+   ```text
+   http://192.168.1.50:8088
+   ```
+
+   Replace the example address with that Windows LAN address. Do not use
+   `localhost` on the remote machine.
+
+WSL's address can change after a restart or `wsl --shutdown`; rerun the Windows
+helper to refresh forwarding. Docker/WSL must remain running. Guest Wi-Fi client
+isolation and other VLANs may block access; the default rule allows only the
+local subnet, not every routed studio subnet.
+
+To disable LAN access, run the same Windows helper with `-Disable` from an
+administrator PowerShell, then start without `--lan` in Ubuntu:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-lan.ps1 -Distribution Ubuntu -Disable
+```
+
+```bash
+bash scripts/docker-start.sh
+```
 
 ## Verification scope
 

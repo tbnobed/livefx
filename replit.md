@@ -48,7 +48,7 @@ The requested product controls two existing Assimilate Live FX servers using the
 
 ## Gotchas
 
-- The user requires self-hosting under Windows WSL2 via Docker. Keep the local deployment independent of Replit services. See `deploy/docker/README.md`; start with `bash scripts/docker-start.sh`. Its default localhost-only binding is intentional until operator authentication is implemented.
+- The user runs Ubuntu inside WSL2 with Docker Engine (no Docker Desktop required) and needs access from other LAN machines. Keep self-hosting independent of Replit services. Default binding stays localhost; `bash scripts/docker-start.sh --lan` explicitly enables trusted-LAN binding. `scripts/windows-lan.ps1` sets up NAT forwarding with a Private-profile/local-subnet firewall rule. No operator login exists: do not expose to untrusted users or the internet. See `deploy/docker/README.md`.
 
 - Assimilate REST is available from Product Suite v9.9 build 1205. Enable its HTTP server in System Settings.
 - If the hardware uses optional access keys, configure `LIVE_FX_SERVER_A_KEY` and `LIVE_FX_SERVER_B_KEY` using Replit Secrets. The backend sends the raw value in `Authorization`, not a Bearer token. Never put keys in URLs, forms, logs, or the browser.

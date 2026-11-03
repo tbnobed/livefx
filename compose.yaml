@@ -67,9 +67,9 @@ services:
     depends_on:
       api:
         condition: service_healthy
-    # Keep this operator tool local until authentication is implemented.
+    # Local by default; --lan explicitly opts into trusted-network access.
     ports:
-      - "127.0.0.1:${CONTROL_CENTER_PORT:-8088}:8080"
+      - "${CONTROL_CENTER_BIND:-127.0.0.1}:${CONTROL_CENTER_PORT:-8088}:8080"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
       interval: 15s
