@@ -25,7 +25,6 @@ export function Shell({ children }: { children: ReactNode }) {
           <img src={`${import.meta.env.BASE_URL}branding/assimilate-logo.png`} alt="Assimilate" width={44} height={44} className="h-11 w-11 shrink-0 object-contain" data-testid="img-assimilate-logo" />
           <div>
             <div className="text-sm font-extrabold tracking-tight text-sidebar-accent-foreground">Live FX Control</div>
-            <div className="mono text-[10px] uppercase tracking-widest text-sidebar-foreground/50">2 slot operator desk</div>
           </div>
         </div>
         <nav className="flex gap-0.5 overflow-x-auto px-2 pb-2 md:flex-col md:overflow-visible">
